@@ -2,6 +2,9 @@ import { UseQueryOptions } from "@tanstack/react-query";
 import axios from "axios";
 
 export const BASE_API_URL = import.meta.env.VITE_BASE_API_URL || "/api";
+// Alias for services base URL if different logic needed later, but for now it's /api/
+export const SERVICES_BASE_URL = BASE_API_URL.endsWith("/") ? BASE_API_URL : `${BASE_API_URL}/`;
+
 export const BASE_OPIK_AI_URL = import.meta.env.VITE_BASE_OPIK_AI_URL || "";
 const axiosInstance = axios.create({
   baseURL: BASE_API_URL,
@@ -12,7 +15,7 @@ axiosInstance.defaults.withCredentials = true;
 export const CODE_EXECUTOR_SERVICE_URL = import.meta.env
   .VITE_GET_STARTED_API_URL;
 export const FEATURE_TOGGLES_REST_ENDPOINT = "/v1/private/toggles/";
-export const WELCOME_WIZARD_REST_ENDPOINT = "/v1/private/welcome-wizard";
+export const WELCOME_WIZARD_REST_ENDPOINT = "/v1/private/welcome-wizard/";
 export const PROJECTS_REST_ENDPOINT = "/v1/private/projects/";
 export const DATASETS_REST_ENDPOINT = "/v1/private/datasets/";
 export const EXPERIMENTS_REST_ENDPOINT = "/v1/private/experiments/";
@@ -36,6 +39,7 @@ export const TRACE_ANALYZER_REST_ENDPOINT = "/trace-analyzer/session/";
 export const PLAYGROUND_EVALUATION_REST_ENDPOINT =
   "/v1/private/playground/evaluations/";
 export const DASHBOARDS_REST_ENDPOINT = "/v1/private/dashboards/";
+export const SERVING_POINTS_REST_ENDPOINT = "/v1/private/debug/connections";
 
 export const COMPARE_EXPERIMENTS_KEY = "compare-experiments";
 export const SPANS_KEY = "spans";

@@ -27,6 +27,7 @@ import useRulesList from "@/api/automations/useRulesList";
 import useOptimizationsList from "@/api/optimizations/useOptimizationsList";
 import useAlertsList from "@/api/alerts/useAlertsList";
 import useDashboardsList from "@/api/dashboards/useDashboardsList";
+import { useServingPointsList } from "@/api/serving-points/useServingPointsList";
 import { OnChangeFn } from "@/types/shared";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -77,6 +78,20 @@ const MENU_ITEMS: MenuItemGroup[] = [
         icon: ChartLine,
         label: "Dashboards",
         count: "dashboards",
+      },
+    ],
+  },
+  {
+    id: "debugging",
+    label: "Debugging",
+    items: [
+      {
+        id: "connections",
+        path: "/$workspaceName/debugging/connections",
+        type: MENU_ITEM_TYPE.router,
+        icon: Blocks,
+        label: "Connections",
+        count: "connections",
       },
     ],
   },
@@ -325,6 +340,10 @@ const SideBar: React.FunctionComponent<SideBarProps> = ({
     },
   );
 
+  const { data: servingPointsData } = useServingPointsList({
+    enabled: expanded,
+  });
+
   const countDataMap: Record<string, number | undefined> = {
     projects: projectData?.total,
     datasets: datasetsData?.total,
@@ -335,6 +354,7 @@ const SideBar: React.FunctionComponent<SideBarProps> = ({
     annotation_queues: annotationQueuesData?.total,
     alerts: alertsData?.total,
     dashboards: dashboardsData?.total,
+    connections: servingPointsData?.length,
   };
 
   const hasActiveOptimizations = (runningOptimizationsData?.total ?? 0) > 0;

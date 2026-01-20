@@ -58,11 +58,11 @@ const TanStackRouterDevtools =
   process.env.NODE_ENV === "production"
     ? () => null // Render nothing in production
     : React.lazy(() =>
-        // Lazy load in development
-        import("@tanstack/router-devtools").then((res) => ({
-          default: res.TanStackRouterDevtools,
-        })),
-      );
+      // Lazy load in development
+      import("@tanstack/router-devtools").then((res) => ({
+        default: res.TanStackRouterDevtools,
+      })),
+    );
 
 const rootRoute = createRootRoute({
   component: () => (
@@ -432,6 +432,39 @@ const alertEditRoute = createRoute({
   component: AddEditAlertPage,
 });
 
+// --------- debugging
+
+const debuggingRoute = createRoute({
+  path: "/debugging",
+  getParentRoute: () => workspaceRoute,
+  staticData: {
+    title: "Debugging",
+  },
+});
+
+const connectionsRoute = createRoute({
+  path: "/connections",
+  getParentRoute: () => debuggingRoute,
+  staticData: {
+    title: "Connections",
+  },
+});
+
+const connectionsListRoute = createRoute({
+  path: "/",
+  getParentRoute: () => connectionsRoute,
+  component: lazy(() => import("@/components/pages/ServingPointsPage/ServingPointsPage")),
+});
+
+const connectionsDetailRoute = createRoute({
+  path: "/$serviceName",
+  getParentRoute: () => connectionsRoute,
+  component: lazy(() => import("@/components/pages/ServingPointPage/ServingPointPage")),
+  staticData: {
+    param: "serviceName",
+  },
+});
+
 // --------- production
 
 const onlineEvaluationRoute = createRoute({
@@ -518,6 +551,12 @@ const routeTree = rootRoute.addChildren([
       configurationRoute,
       alertsRoute.addChildren([alertNewRoute, alertEditRoute]),
       onlineEvaluationRoute,
+      debuggingRoute.addChildren([
+        connectionsRoute.addChildren([
+          connectionsListRoute,
+          connectionsDetailRoute,
+        ]),
+      ]),
       annotationQueuesRoute.addChildren([
         annotationQueuesListRoute,
         annotationQueueDetailsRoute,
