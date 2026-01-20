@@ -59,6 +59,8 @@ setup(
         "tqdm",
         "uuid6",
         "jinja2",
+        "crewai",
+        "fastapi",
     ],
     extras_require={
         "proxy": [
