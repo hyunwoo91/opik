@@ -1,15 +1,15 @@
 # Develop `Backend` & `Frontend`
 ```bash
-scripts/debug.sh --start            # local backend & frontend, without building
-scripts/debug.sh --stop
+scripts/dev_runner.sh --start            # local backend & frontend, without building
+scripts/dev_runner.sh --stop
 ```
 
 ## Usages
 ```bash
-scripts/debug.sh --start
+scripts/dev_runner.sh --start
 
 # backend was changed
-scripts/debug.sh --be-only-stop
-scripts/debug.sh --build-be
-scripts/debug.sh --be-only-start
+scripts/dev_runner.sh --be-only-stop
+scripts/dev_runner.sh --build-be
+scripts/dev_runner.sh --be-only-start
 ```
