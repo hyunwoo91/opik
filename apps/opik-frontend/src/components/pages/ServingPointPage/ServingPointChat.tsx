@@ -11,6 +11,8 @@ import CodeMirror from "@uiw/react-codemirror";
 import { jsonLanguage } from "@codemirror/lang-json";
 import { useCodemirrorTheme } from "@/hooks/useCodemirrorTheme";
 import { EditorView } from "@codemirror/view";
+import axios from "axios";
+import { useServingPointsList } from "@/api/serving-points/useServingPointsList";
 
 interface Message {
     role: "user" | "assistant" | "system";
@@ -37,12 +39,23 @@ const ServingPointChat: React.FC = () => {
 
     const theme = useCodemirrorTheme({ editable: false });
 
+    const { data: servingPoints } = useServingPointsList({ enabled: !!serviceName });
+    const servingPoint = servingPoints?.find((sp) => sp.name === serviceName);
+
     const { mutate: sendMessage, isPending } = useMutation({
         mutationFn: async (msgs: Message[]) => {
-            const { data } = await api.post<ChatCompletionResponse>(
-                `${SERVICES_BASE_URL}private/chat/completions`,
+            if (!servingPoint?.url) {
+                throw new Error("Serving point URL not found");
+            }
+
+            const baseUrl = servingPoint.url.replace(/\/+$/, "");
+            const targetUrl = `${baseUrl}/v1/chat/completions`;
+
+            // Use direct axios call to avoid attaching backend-specific interceptors/auth
+            const { data } = await axios.post<ChatCompletionResponse>(
+                targetUrl,
                 {
-                    model: serviceName,
+                    model: serviceName, // Some providers might ignore this or require specific model name
                     messages: msgs,
                 } as ChatCompletionRequest
             );
