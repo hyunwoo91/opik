@@ -93,4 +93,13 @@ def test_interactive_crewai():
         raise
 
 if __name__ == "__main__":
-    test_interactive_crewai()
+    crew = GreetingCrew().crew()
+    serving_host = "127.0.0.1"
+    serving_port = 8888
+
+    interact_crewai_as_chat(
+        target=crew,
+        name="test-crew-service",
+        host=serving_host,
+        port=serving_port,
+    )
