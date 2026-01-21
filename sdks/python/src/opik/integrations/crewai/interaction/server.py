@@ -12,7 +12,7 @@ from .common import InputMapper, OutputMapper
 
 import uvicorn
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 LOGGER = logging.getLogger(__name__)
 
@@ -21,6 +21,8 @@ class ChatCompletionRequest(BaseModel):
     model: str
     messages: List[ChatCompletionMessageParam]
     stream: bool = False
+
+    model_config = ConfigDict(extra='allow')
 
 
 class ChatCompletionChoice(BaseModel):
@@ -86,9 +88,16 @@ class OpenAICompatibleServer:
         async def chat_completions(request: ChatCompletionRequest):
             LOGGER.info(f"Received chat completion request: {request}")
 
+            opik_args = request.model_extra["opik_args"] \
+                if request.model_extra and "opik_args" in request.model_extra \
+                else None
+
             # Process with CrewAI target
             try:
-                response_content = self._process_request(request.messages)
+                response_content = self._process_request(
+                    request.messages,
+                    opik_args=opik_args,
+                )
             except Exception as e:
                 LOGGER.error(f"Error processing request: {e}", exc_info=True)
                 raise HTTPException(status_code=500, detail=str(e))
