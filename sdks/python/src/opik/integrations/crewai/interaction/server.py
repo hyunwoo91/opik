@@ -2,7 +2,7 @@ import logging
 import time
 import uuid
 from collections.abc import Iterable
-from typing import Any, Dict, List, Optional, Callable
+from typing import Any, Dict, List, Optional
 
 from crewai import CrewOutput
 from crewai.types.streaming import CrewStreamingOutput
@@ -10,7 +10,6 @@ from openai.types.chat import ChatCompletionMessageParam, ChatCompletionAssistan
 
 from .common import InputMapper, OutputMapper
 
-import fastapi
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -53,12 +52,6 @@ class OpenAICompatibleServer:
         Args:
             target: The CrewAI component (Crew, Flow) to interact with.
         """
-        if fastapi is None or uvicorn is None:
-            raise ImportError(
-                "The 'fastapi' and 'uvicorn' packages are required for Interactive CrewAI. "
-                "Please install them with: pip install fastapi uvicorn"
-            )
-
         def default_input_mapper(messages: Iterable[ChatCompletionMessageParam]) -> Dict[str, Any]:
             user_msg = next(msg for msg in reversed(list(messages)) if msg["role"] == "user")
             try:
@@ -117,7 +110,7 @@ class OpenAICompatibleServer:
                 ],
             )
 
-    def _process_request(self, user_message: List[ChatCompletionMessageParam]) -> str:
+    def _process_request(self, user_message: List[ChatCompletionMessageParam], opik_args: Dict[str, Any] = None) -> str:
         """
         Process the user message using the CrewAI target.
         """
@@ -130,7 +123,7 @@ class OpenAICompatibleServer:
         # Check if it's a Crew
         if hasattr(self.target, "kickoff"):
             # Assuming kickoff takes 'inputs' dict
-            result = self.target.kickoff(inputs=inputs)
+            result = self.target.kickoff(inputs=inputs, opik_args=opik_args)
             return str(result)
         else:
             raise ValueError("Target must have a kickoff method")        
