@@ -28,7 +28,7 @@ export type UseTracesListResponse = {
   total: number;
 };
 
-const getTracesList = async (
+export const getTracesList = async (
   { signal }: QueryFunctionContext,
   {
     projectId,

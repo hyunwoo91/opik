@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useParams } from "@tanstack/react-router";
-import { Send, Loader2 } from "lucide-react";
-import { useMutation } from "@tanstack/react-query";
+import { Send, Loader2, Workflow } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,10 +13,18 @@ import { useCodemirrorTheme } from "@/hooks/useCodemirrorTheme";
 import { EditorView } from "@codemirror/view";
 import axios from "axios";
 import { useServingPointsList } from "@/api/serving-points/useServingPointsList";
+import { getTracesList } from "@/api/traces/useTracesList";
+import useProjectsList from "@/api/projects/useProjectsList";
+import useAppStore from "@/store/AppStore";
+import { COLUMN_TYPE } from "@/types/shared";
 
 interface Message {
     role: "user" | "assistant" | "system";
     content: string;
+    traceInfo?: {
+        startTime: string;
+        endTime: string;
+    };
 }
 
 interface ChatCompletionRequest {
@@ -32,9 +40,10 @@ interface ChatCompletionResponse {
 
 interface ServingPointChatProps {
     threadId: string;
+    onSelectTrace: (traceId: string) => void;
 }
 
-const ServingPointChat: React.FC<ServingPointChatProps> = ({ threadId }) => {
+const ServingPointChat: React.FC<ServingPointChatProps> = ({ threadId, onSelectTrace }) => {
     const { serviceName } = useParams({ strict: false });
     const [input, setInput] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
@@ -43,8 +52,20 @@ const ServingPointChat: React.FC<ServingPointChatProps> = ({ threadId }) => {
 
     const theme = useCodemirrorTheme({ editable: false });
 
+    const queryClient = useQueryClient();
+
+    // Helper to get project ID
+    const { data: projectsData } = useProjectsList({
+        workspaceName: useAppStore(state => state.activeWorkspaceName),
+        search: serviceName,
+        page: 1,
+        size: 1,
+    });
+    const projectId = projectsData?.content?.[0]?.id;
+
     const { data: servingPoints } = useServingPointsList({ enabled: !!serviceName });
     const servingPoint = servingPoints?.find((sp) => sp.name === serviceName);
+    const [requestStartTime, setRequestStartTime] = useState<string | null>(null);
 
     const { mutate: sendMessage, isPending } = useMutation({
         mutationFn: async (msgs: Message[]) => {
@@ -67,19 +88,31 @@ const ServingPointChat: React.FC<ServingPointChatProps> = ({ threadId }) => {
             return data;
         },
         onSuccess: (data) => {
+            const endTime = new Date().toISOString();
             const assistantMessage = data.choices[0]?.message;
+
             if (assistantMessage) {
-                setMessages((prev) => [...prev, assistantMessage]);
+                const msgWithTraceInfo: Message = {
+                    ...assistantMessage,
+                    traceInfo: requestStartTime ? {
+                        startTime: requestStartTime,
+                        endTime: endTime,
+                    } : undefined
+                };
+                setMessages((prev) => [...prev, msgWithTraceInfo]);
             }
+            setRequestStartTime(null);
         },
         onError: (error) => {
             console.error("Failed to send message", error);
-            // Optionally add an error message to the chat
+            setRequestStartTime(null);
         },
     });
 
     const handleSubmit = () => {
         if (!input.trim()) return;
+
+        setRequestStartTime(new Date().toISOString());
 
         let content = input;
         let isJson = false;
@@ -97,6 +130,58 @@ const ServingPointChat: React.FC<ServingPointChatProps> = ({ threadId }) => {
         setMessages(newMessages);
         setInput("");
         sendMessage(newMessages);
+    };
+
+    const handleTraceClick = async (traceInfo: { startTime: string; endTime: string }) => {
+        if (!projectId) return;
+
+        // Trace should start around the request start time.
+        // We use a buffer to account for clock skew between client and server.
+        const bufferMs = 5000;
+        const searchStart = new Date(new Date(traceInfo.startTime).getTime() - bufferMs).getTime();
+        const searchEnd = new Date(new Date(traceInfo.endTime).getTime() + bufferMs).getTime();
+
+        try {
+            const response = await queryClient.fetchQuery({
+                queryKey: ["traces-lookup", projectId, threadId, traceInfo.startTime],
+                queryFn: () => getTracesList(
+                    {
+                        signal: new AbortController().signal,
+                        queryKey: ["traces-lookup"],
+                        meta: undefined
+                    },
+                    {
+                        projectId,
+                        filters: [
+                            {
+                                id: "thread-id",
+                                field: "thread_id",
+                                operator: "=",
+                                value: threadId,
+                                type: COLUMN_TYPE.string,
+                            }
+                        ],
+                        page: 1,
+                        size: 50, // Fetch recent 50 traces for the thread
+                        sorting: [{ id: "start_time", desc: true }],
+                    }
+                ),
+            });
+
+            // Client-side filter to find the matching trace
+            const matchingTrace = response.content?.find((t) => {
+                const traceTime = new Date(t.start_time).getTime();
+                return traceTime >= searchStart && traceTime <= searchEnd;
+            });
+
+            if (matchingTrace) {
+                onSelectTrace(matchingTrace.id);
+            } else {
+                console.warn("No trace found for this message window", { searchStart, searchEnd });
+            }
+        } catch (e) {
+            console.error("Failed to lookup trace", e);
+        }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -149,16 +234,32 @@ const ServingPointChat: React.FC<ServingPointChatProps> = ({ threadId }) => {
                             msg.role === "user" ? "justify-end" : "justify-start"
                         )}
                     >
-                        <div
-                            className={cn(
-                                "max-w-[85%] rounded-lg p-3",
-                                msg.role === "user"
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-muted text-foreground"
+                        <div className="flex flex-col max-w-[85%]">
+                            <div
+                                className={cn(
+                                    "rounded-lg p-3",
+                                    msg.role === "user"
+                                        ? "bg-primary text-primary-foreground"
+                                        : "bg-muted text-foreground"
+                                )}
+                            >
+                                <div className="text-xs font-semibold mb-1 opacity-70 uppercase">{msg.role}</div>
+                                {renderMessageContent(msg.content)}
+                            </div>
+
+                            {msg.role === "assistant" && msg.traceInfo && (
+                                <div className="mt-1 pl-1">
+                                    <Button
+                                        variant="link"
+                                        size="sm"
+                                        className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground font-normal gap-1 no-underline hover:no-underline"
+                                        onClick={() => msg.traceInfo && handleTraceClick(msg.traceInfo)}
+                                    >
+                                        <Workflow className="h-3 w-3" />
+                                        Trace
+                                    </Button>
+                                </div>
                             )}
-                        >
-                            <div className="text-xs font-semibold mb-1 opacity-70 uppercase">{msg.role}</div>
-                            {renderMessageContent(msg.content)}
                         </div>
                     </div>
                 ))}

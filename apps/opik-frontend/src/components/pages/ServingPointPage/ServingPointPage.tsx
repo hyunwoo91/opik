@@ -10,6 +10,7 @@ const ServingPointPage: React.FC = () => {
     const { serviceName } = useParams({ strict: false });
     const setBreadcrumbParam = useBreadcrumbsStore((state) => state.setParam);
     const [threadId] = useState(() => uuidv4());
+    const [selectedTraceId, setSelectedTraceId] = useState<string | null>(null);
 
     useEffect(() => {
         if (serviceName) {
@@ -27,12 +28,19 @@ const ServingPointPage: React.FC = () => {
 
             <div className="flex-1 overflow-hidden pb-4 pt-1">
                 <ResizablePanelGroup direction="horizontal" className="h-full w-full rounded-md border bg-background">
-                    <ResizablePanel defaultSize={50} minSize={30}>
-                        <ServingPointChat threadId={threadId} />
+                    <ResizablePanel defaultSize={30} minSize={30}>
+                        <ServingPointChat
+                            threadId={threadId}
+                            onSelectTrace={setSelectedTraceId}
+                        />
                     </ResizablePanel>
                     <ResizableHandle />
-                    <ResizablePanel defaultSize={50} minSize={30}>
-                        <ServingPointTraces threadId={threadId} />
+                    <ResizablePanel defaultSize={70} minSize={30}>
+                        <ServingPointTraces
+                            threadId={threadId}
+                            selectedTraceId={selectedTraceId}
+                            onSelectTrace={setSelectedTraceId}
+                        />
                     </ResizablePanel>
                 </ResizablePanelGroup>
             </div>
