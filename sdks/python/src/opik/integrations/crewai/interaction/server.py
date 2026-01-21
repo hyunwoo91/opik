@@ -77,7 +77,15 @@ class OpenAICompatibleServer:
         self.output_mapper = output_mapper or default_output_mapper
 
         self.target = target
+        from fastapi.middleware.cors import CORSMiddleware
         self.app = FastAPI()
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
         self.setup_routes()
 
     def setup_routes(self):
