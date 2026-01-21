@@ -1,13 +1,15 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams } from "@tanstack/react-router";
+import { v4 as uuidv4 } from "uuid";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import ServingPointChat from "./ServingPointChat";
-import ServingPointSpans from "./ServingPointSpans";
+import ServingPointTraces from "./ServingPointTraces";
 import useBreadcrumbsStore from "@/store/BreadcrumbsStore";
 
 const ServingPointPage: React.FC = () => {
     const { serviceName } = useParams({ strict: false });
     const setBreadcrumbParam = useBreadcrumbsStore((state) => state.setParam);
+    const [threadId] = useState(() => uuidv4());
 
     useEffect(() => {
         if (serviceName) {
@@ -26,11 +28,11 @@ const ServingPointPage: React.FC = () => {
             <div className="flex-1 overflow-hidden pb-4 pt-1">
                 <ResizablePanelGroup direction="horizontal" className="h-full w-full rounded-md border bg-background">
                     <ResizablePanel defaultSize={50} minSize={30}>
-                        <ServingPointChat />
+                        <ServingPointChat threadId={threadId} />
                     </ResizablePanel>
                     <ResizableHandle />
                     <ResizablePanel defaultSize={50} minSize={30}>
-                        <ServingPointSpans />
+                        <ServingPointTraces threadId={threadId} />
                     </ResizablePanel>
                 </ResizablePanelGroup>
             </div>

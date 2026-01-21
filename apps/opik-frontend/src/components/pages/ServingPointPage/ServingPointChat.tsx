@@ -13,7 +13,6 @@ import { useCodemirrorTheme } from "@/hooks/useCodemirrorTheme";
 import { EditorView } from "@codemirror/view";
 import axios from "axios";
 import { useServingPointsList } from "@/api/serving-points/useServingPointsList";
-import { v4 as uuidv4 } from "uuid";
 
 interface Message {
     role: "user" | "assistant" | "system";
@@ -31,11 +30,14 @@ interface ChatCompletionResponse {
     }[];
 }
 
-const ServingPointChat: React.FC = () => {
+interface ServingPointChatProps {
+    threadId: string;
+}
+
+const ServingPointChat: React.FC<ServingPointChatProps> = ({ threadId }) => {
     const { serviceName } = useParams({ strict: false });
     const [input, setInput] = useState("");
     const [messages, setMessages] = useState<Message[]>([]);
-    const [threadId] = useState(() => uuidv4());
     const scrollRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
