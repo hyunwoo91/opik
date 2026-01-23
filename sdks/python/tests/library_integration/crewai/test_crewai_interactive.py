@@ -7,6 +7,7 @@ import logging
 from crewai import Agent, Task, Crew, Process
 
 from opik.integrations.crewai import interact_crewai_as_chat
+from tests.library_integration.crewai.components.writer_crew import WritingCrew
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -93,7 +94,7 @@ def test_interactive_crewai():
         raise
 
 if __name__ == "__main__":
-    crew = GreetingCrew().crew()
+    crew = WritingCrew().crew()
     serving_host = "127.0.0.1"
     serving_port = 8888
 
